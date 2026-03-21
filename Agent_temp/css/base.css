@@ -1,0 +1,73 @@
+/* ══════════════════════════════════
+   BASE — CSS Variables & Reset
+   ══════════════════════════════════ */
+   :root{
+    --bg:#0a0a0b;
+    --bg2:#111113;
+    --bg3:#18181c;
+    --surface:#1e1e24;
+    --surface2:#26262e;
+    --border:rgba(255,255,255,0.07);
+    --border2:rgba(255,255,255,0.12);
+    --text:#f0efe8;
+    --text2:#a09e97;
+    --text3:#636059;
+    --accent:#c8f564;
+    --accent2:#a8e040;
+    --accent-dim:rgba(200,245,100,0.12);
+    --accent-dim2:rgba(200,245,100,0.06);
+    --red:#ff5f5f;
+    --amber:#f5a623;
+    --blue:#5b9cf6;
+    --purple:#a78bfa;
+    --teal:#2dd4bf;
+    --font-serif:'DM Serif Display',serif;
+    --font-sans:'DM Sans',sans-serif;
+    --font-mono:'JetBrains Mono',monospace;
+    --radius:12px;
+    --radius-lg:20px;
+    --transition:0.25s cubic-bezier(0.4,0,0.2,1);
+  }
+  [data-theme="light"]{
+    --bg:#f7f6f2;
+    --bg2:#eeece6;
+    --bg3:#e4e2da;
+    --surface:#ffffff;
+    --surface2:#f0efe8;
+    --border:rgba(0,0,0,0.08);
+    --border2:rgba(0,0,0,0.14);
+    --text:#1a1916;
+    --text2:#5a5850;
+    --text3:#9a9890;
+    --accent:#3a7c00;
+    --accent2:#2d6200;
+    --accent-dim:rgba(58,124,0,0.1);
+    --accent-dim2:rgba(58,124,0,0.05);
+  }
+  [data-theme="dark"] .snap-key,
+  [data-theme="dark"] .dec-q,
+  [data-theme="dark"] .section-label,
+  [data-theme="dark"] .ws-meta-key,
+  [data-theme="dark"] .stack-category,
+  [data-theme="dark"] .fn-label,
+  [data-theme="dark"] .iter-ver-tag {
+    color: var(--text2);
+  }
+  
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth;font-size:16px}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:var(--font-sans);
+    font-weight:300;
+    line-height:1.7;
+    overflow-x:hidden;
+    transition:background var(--transition),color var(--transition);
+  }
+  ::selection{background:var(--accent-dim);color:var(--text)}
+  
+  /* ── SCROLLBAR ── */
+  ::-webkit-scrollbar{width:4px}
+  ::-webkit-scrollbar-track{background:var(--bg)}
+  ::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}

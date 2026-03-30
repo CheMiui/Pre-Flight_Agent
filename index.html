@@ -1,0 +1,1025 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light" data-lang="zh">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <title>Pre-Flight Agent — Case Study</title>
+    <meta name="description" content="A deep case study on building an AIGC video pre-production Agent for the short drama industry."/>
+    <link rel="preconnect" href="https://fonts.googleapis.com"/>
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+    <link rel="stylesheet" href="css/base.css">
+    <link rel="stylesheet" href="css/components.css">
+    <link rel="stylesheet" href="css/workflow.css">
+</head>
+<body>
+
+    <!-- NAV -->
+    <nav>
+      <a class="nav-logo" href="#hero">PRE-FLIGHT /</a>
+      <div class="nav-links">
+        <a href="#problem"><span class="zh">背景</span><span class="en">Context</span></a>
+        <a href="#architecture"><span class="zh">架构</span><span class="en">Architecture</span></a>
+        <a href="#workflow"><span class="zh">工作流</span><span class="en">Workflow</span></a>
+        <a href="#decisions"><span class="zh">设计决策</span><span class="en">Decisions</span></a>
+        <a href="#results"><span class="zh">成果</span><span class="en">Results</span></a>
+        <a href="#cta"><span class="zh">联系</span><span class="en">Contact</span></a>
+      </div>
+      <div class="nav-right">
+        <button class="btn-icon lang-btn" onclick="toggleLang()" id="lang-toggle">EN</button>
+        <button class="btn-icon" onclick="toggleTheme()" id="theme-toggle" title="Toggle theme">☀</button>
+      </div>
+    </nav>
+    
+    <!-- HERO -->
+    <section id="hero">
+      <div class="hero-grid"></div>
+      <div class="hero-glow"></div>
+    
+      <div class="hero-badge">
+        <span class="badge-dot"></span>
+        <span class="zh">案例复盘 · 2025.11 — 2026.02</span>
+        <span class="en">Case Study · Nov 2025 — Feb 2026</span>
+      </div>
+    
+      <h1 class="hero-title">
+        <span class="zh">Pre-Flight<br/><em>Agent</em></span>
+        <span class="en">Pre-Flight<br/><em>Agent</em></span>
+      </h1>
+    
+      <p class="hero-sub">
+        <span class="zh">为 AIGC 短剧行业设计的投产前置智能审核系统。在视频生成前，完成需求补全、成本估算、合规拦截与专业提示词生成。</span>
+        <span class="en">A pre-production intelligence system for the AIGC short drama industry — completing requirement checks, cost estimation, compliance screening, and professional prompt generation before a single frame is rendered.</span>
+      </p>
+    
+      <div class="hero-ctas">
+        <a href="#architecture" class="btn-primary">
+          <span class="zh">查看架构</span><span class="en">View Architecture</span>
+          <span>↓</span>
+        </a>
+        <a href="#decisions" class="btn-outline">
+          <span class="zh">设计决策</span><span class="en">Design Decisions</span>
+        </a>
+      </div>
+    
+      <!-- Mini workflow preview -->
+      <div class="hero-visual">
+        <div class="hero-visual-bar">
+          <span class="dot dot-r"></span><span class="dot dot-y"></span><span class="dot dot-g"></span>
+          <span style="margin-left:8px;font-family:var(--font-mono);font-size:11px;color:var(--text3)">pre-flight-agent · workflow preview</span>
+        </div>
+        <div class="hero-flow">
+          <!-- Row 1 -->
+          <div class="flow-row">
+            <div class="flow-node" style="max-width:240px;margin:0 auto;border-color:rgba(200,245,100,0.25)">
+              <div class="fn-label"><span class="zh">输入</span><span class="en">Input</span></div>
+              <div class="fn-name"><span class="zh">用户自然语言描述</span><span class="en">User natural language input</span></div>
+            </div>
+          </div>
+          <div class="flow-arrow-v">↓</div>
+          <!-- Row 2 -->
+          <div class="flow-row">
+            <div class="flow-node" style="max-width:280px;margin:0 auto">
+              <div class="fn-label">Step 0</div>
+              <div class="fn-name"><span class="zh">意图识别</span><span class="en">Intent Classification</span></div>
+              <div class="fn-model">Qwen3-30B</div>
+            </div>
+          </div>
+          <div class="flow-arrow-v">↓</div>
+          <!-- Row 3: Branch -->
+          <div class="flow-branch">
+            <div class="flow-node branch-type-a">
+              <div class="fn-label"><span class="zh">新需求</span><span class="en">New Request</span></div>
+              <div class="fn-name"><span class="zh">重置记忆</span><span class="en">Reset Memory</span></div>
+            </div>
+            <div class="flow-node branch-type-b">
+              <div class="fn-label"><span class="zh">补充信息</span><span class="en">Supplement</span></div>
+              <div class="fn-name"><span class="zh">读取 · 合并</span><span class="en">Read · Merge</span></div>
+              <div class="fn-model">ERNIE-4.0</div>
+            </div>
+            <div class="flow-node branch-type-c">
+              <div class="fn-label"><span class="zh">确认投产</span><span class="en">Confirm</span></div>
+              <div class="fn-name"><span class="zh">→ 完成</span><span class="en">→ Done</span></div>
+            </div>
+          </div>
+          <div class="flow-arrow-v">↓</div>
+          <!-- Row 4 -->
+          <div class="flow-row">
+            <div class="flow-node" style="max-width:280px;margin:0 auto;border-color:rgba(255,95,95,0.2)">
+              <div class="fn-label">Step 1</div>
+              <div class="fn-name"><span class="zh">智能阻断器 · 三级红线</span><span class="en">Smart Interceptor · 3-tier gates</span></div>
+              <div class="fn-model">DeepSeek-V3.2</div>
+              <div style="display:flex;gap:5px;margin-top:6px;flex-wrap:wrap;justify-content:center">
+                <span class="node-badge nb-pass">PASS</span>
+                <span class="node-badge nb-edit">NEED_EDIT</span>
+                <span class="node-badge nb-reject">REJECT</span>
+              </div>
+            </div>
+          </div>
+          <div class="flow-arrow-v">↓</div>
+          <!-- Row 5 -->
+          <div class="flow-branch">
+            <div class="flow-node">
+              <div class="fn-label">Step 2.5</div>
+              <div class="fn-name"><span class="zh">成本计算器</span><span class="en">Cost Estimator</span></div>
+              <div class="fn-model">ERNIE-4.0</div>
+            </div>
+            <div class="flow-node">
+              <div class="fn-label">Step 2.6</div>
+              <div class="fn-name"><span class="zh">决策路由器</span><span class="en">Decision Router</span></div>
+              <div class="fn-model">Python · Code</div>
+            </div>
+            <div class="flow-node">
+              <div class="fn-label">Step 3</div>
+              <div class="fn-name"><span class="zh">Prompt 生成器 + RAG</span><span class="en">Prompt Generator + RAG</span></div>
+              <div class="fn-model">ERNIE-4.0 + KB</div>
+            </div>
+          </div>
+          <div class="flow-arrow-v">↓</div>
+          <!-- Row 6 -->
+          <div class="flow-row">
+            <div class="flow-node" style="max-width:280px;margin:0 auto;border-color:rgba(91,156,246,0.2)">
+              <div class="fn-label">Step 4</div>
+              <div class="fn-name"><span class="zh">C端回复生成器</span><span class="en">User Response Generator</span></div>
+              <div class="fn-model">ERNIE-Speed</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+    
+    <div class="divider"></div>
+    
+    <!-- SNAPSHOT -->
+    <section id="snapshot">
+      <div class="section-label"><span class="zh">项目概览</span><span class="en">Project Snapshot</span></div>
+      <h2><span class="zh">一个<em>项目</em>，<br/>一套方法论</span><span class="en">One project.<br/>One methodology.</span></h2>
+    
+      <div class="snapshot-grid reveal">
+        <div class="snap-cell">
+          <div class="snap-key"><span class="zh">项目类型</span><span class="en">Type</span></div>
+          <div class="snap-val"><span class="zh">AIGC Agent 系统设计</span><span class="en">AIGC Agent System Design</span></div>
+        </div>
+        <div class="snap-cell">
+          <div class="snap-key"><span class="zh">周期</span><span class="en">Duration</span></div>
+          <div class="snap-val">2025.11 — 2026.02</div>
+        </div>
+        <div class="snap-cell">
+          <div class="snap-key"><span class="zh">我的角色</span><span class="en">My Role</span></div>
+          <div class="snap-val"><span class="zh">独立设计与搭建（核心负责人）</span><span class="en">Solo Design & Build (Lead)</span></div>
+        </div>
+        <div class="snap-cell">
+          <div class="snap-key"><span class="zh">开发平台</span><span class="en">Platform</span></div>
+          <div class="snap-val"><span class="zh">百度千帆 AppBuilder</span><span class="en">Baidu Qianfan AppBuilder</span></div>
+        </div>
+        <div class="snap-cell">
+          <div class="snap-key"><span class="zh">项目阶段</span><span class="en">Stage</span></div>
+          <div class="snap-val"><span class="zh">MVP 验证完成 · 商业化准备中</span><span class="en">MVP Validated · Pre-commercial</span></div>
+        </div>
+        <div class="snap-cell">
+          <div class="snap-key"><span class="zh">版本演进</span><span class="en">Versions</span></div>
+          <div class="snap-val">v0.1 → v0.2 → v0.2.5 → v0.3 Beta</div>
+        </div>
+        <div class="snap-cell" style="grid-column:span 3">
+          <div class="snap-key"><span class="zh">核心技术标签</span><span class="en">Tech Tags</span></div>
+          <div class="snap-tags">
+            <span class="tag tag-accent">Multi-Model Routing</span>
+            <span class="tag tag-accent">RAG</span>
+            <span class="tag tag-accent">Multi-turn Memory</span>
+            <span class="tag">Qwen3-30B</span>
+            <span class="tag">DeepSeek-V3.2</span>
+            <span class="tag">ERNIE-4.0</span>
+            <span class="tag">Cost Estimation</span>
+            <span class="tag">Prompt Engineering</span>
+            <span class="tag">Workflow Orchestration</span>
+          </div>
+        </div>
+      </div>
+    </section>
+    
+    <div class="divider"></div>
+    
+    <!-- PROBLEM -->
+    <section id="problem">
+      <div class="section-label"><span class="zh">背景与问题定义</span><span class="en">Problem Background</span></div>
+      <h2><span class="zh">"盲盒式投产"<br/>的真实代价</span><span class="en">The real cost of<br/><em>blind production</em></span></h2>
+      <p class="section-desc">
+        <span class="zh">短剧行业正在大规模拥抱 AIGC，但没有人在"生成"之前做好把关。投产即开盲盒，试错成本极高。</span>
+        <span class="en">The short drama industry is rapidly adopting AIGC, but nobody is gatekeeping before generation. Every production is a blind box — the cost of failure is enormous.</span>
+      </p>
+    
+      <div class="problem-layout reveal">
+        <div>
+          <ul class="pain-list">
+            <li class="pain-item">
+              <span class="pain-icon">✗</span>
+              <div class="pain-text">
+                <strong><span class="zh">需求模糊即投产</span><span class="en">Vague requirements go to production</span></strong><br/>
+                <span class="zh">创作者一句"我要仙侠视频"就开始生成，缺少时长、分辨率、预算等关键参数，最终结果往往与预期完全不符。</span>
+                <span class="en">Creators submit "I want a xianxia video" and immediately pay for generation, missing duration, resolution, and budget — results never match expectations.</span>
+              </div>
+            </li>
+            <li class="pain-item">
+              <span class="pain-icon" style="background:rgba(245,166,35,0.12);color:var(--amber)">⚠</span>
+              <div class="pain-text">
+                <strong><span class="zh">预算超支无预警</span><span class="en">Budget overruns with zero warning</span></strong><br/>
+                <span class="zh">没有前置的成本估算，用户在生成完成后才发现费用远超预算，重新生成带来双重损耗。</span>
+                <span class="en">No upfront cost estimation means users discover budget overruns only after generation — paying twice for the same output.</span>
+              </div>
+            </li>
+            <li class="pain-item">
+              <span class="pain-icon" style="background:rgba(91,156,246,0.12);color:var(--blue)">◈</span>
+              <div class="pain-text">
+                <strong><span class="zh">术语幻觉严重</span><span class="en">Severe hallucination on domain terms</span></strong><br/>
+                <span class="zh">通用大模型不懂"御剑飞行""丹炉"等仙侠专业词汇的正确英文表达，生成结果专业度低、风格跑偏。</span>
+                <span class="en">General LLMs don't know the correct English Prompt equivalents for "immortal sword riding" or "alchemy furnace," producing generic, off-style results.</span>
+              </div>
+            </li>
+            <li class="pain-item">
+              <span class="pain-icon">✗</span>
+              <div class="pain-text">
+                <strong><span class="zh">剧本拆解极耗时</span><span class="en">Script breakdown is painfully slow</span></strong><br/>
+                <span class="zh">人工编写分镜 Prompt 需要熟悉 AIGC 工具的英文关键词体系，一集短剧需要数小时甚至一整天。</span>
+                <span class="en">Manually writing storyboard prompts requires AIGC keyword expertise — a single episode takes hours to a full day.</span>
+              </div>
+            </li>
+          </ul>
+        </div>
+    
+        <div>
+          <div class="problem-card highlight">
+            <div class="section-label" style="margin-bottom:20px"><span class="zh">为什么做成 Agent？</span><span class="en">Why an Agent?</span></div>
+            <p style="font-size:15px;color:var(--text2);line-height:1.8;margin-bottom:24px">
+              <span class="zh">这不是一个"生成工具"能解决的问题。用户需求是渐进式的，信息是分散的，判断是多维度的，优化是循环的。只有 Agent 能处理多轮对话记忆、动态路由和跨节点状态管理。</span>
+              <span class="en">This isn't a problem a simple generation tool can solve. User requirements are incremental, information is scattered, judgment is multi-dimensional, and optimization is iterative. Only an Agent can handle multi-turn memory, dynamic routing, and cross-node state management.</span>
+            </p>
+            <div class="stat-row">
+              <div class="stat-box">
+                <div class="stat-num">30%<span style="font-size:24px">+</span></div>
+                <div class="stat-unit"><span class="zh">预计降低无效投产成本</span><span class="en">Projected waste reduction</span></div>
+              </div>
+              <div class="stat-box">
+                <div class="stat-num">&lt;15%</div>
+                <div class="stat-unit"><span class="zh">成本估算误差</span><span class="en">Cost estimation error</span></div>
+              </div>
+              <div class="stat-box">
+                <div class="stat-num">42s</div>
+                <div class="stat-unit"><span class="zh">平均响应时间</span><span class="en">Avg response time</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+    
+    <div class="divider"></div>
+    
+    <!-- ARCHITECTURE -->
+    <section id="architecture">
+      <div class="section-label"><span class="zh">系统架构</span><span class="en">System Architecture</span></div>
+      <h2><span class="zh">多模型混排<br/>工作流编排</span><span class="en">Multi-model routing<br/>workflow orchestration</span></h2>
+      <p class="section-desc">
+        <span class="zh">不同节点选用不同模型，核心原则：把对的模型用在对的任务上，而不是全程用最贵的。</span>
+        <span class="en">Different nodes use different models. Core principle: use the right model for the right task — never default to the most expensive one everywhere.</span>
+      </p>
+    
+      <div class="arch-wrap reveal">
+        <div class="arch-header">
+          <span style="font-size:13px;font-weight:500;color:var(--text);opacity:1">
+            <span class="zh">完整工作流 · v0.3 Beta</span><span class="en">Full Workflow · v0.3 Beta</span>
+          </span>
+          <span>
+            <span class="node-badge nb-pass" style="margin-right:8px;font-size:12px;padding:4px 12px">PASS</span>
+            <span class="node-badge nb-edit" style="margin-right:8px;font-size:12px;padding:4px 12px">NEED_EDIT</span>
+            <span class="node-badge nb-reject" style="font-size:12px;padding:4px 12px">REJECT</span>
+          </span>
+        </div>
+        <div class="arch-body">
+            <div class="arch-svg-wrap">
+              <svg width="100%" viewBox="0 0 680 920" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                  <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                    <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                  </marker>
+                  <mask id="imagine-text-gaps-ku5p4v" maskUnits="userSpaceOnUse"><rect x="0" y="0" width="680" height="920" fill="white"/><rect x="229.3736572265625" y="12.888882637023926" width="221.25271606445312" height="22.888898849487305" fill="black" rx="2"/><rect x="308.0060729980469" y="57.263885498046875" width="63.987876892089844" height="21.472230911254883" fill="black" rx="2"/><rect x="288.0030212402344" y="74.44444274902344" width="103.99397277832031" height="19.111119270324707" fill="black" rx="2"/><rect x="282.1998596191406" y="127.26388549804688" width="115.6003189086914" height="21.472230911254883" fill="black" rx="2"/><rect x="268.8706359863281" y="148.44444274902344" width="142.25875854492188" height="19.111119270324707" fill="black" rx="2"/><rect x="88.00021362304688" y="192.19444274902344" width="43.99958419799805" height="19.111119270324707" fill="black" rx="2"/><rect x="312.00152587890625" y="192.19444274902344" width="55.996986389160156" height="19.111119270324707" fill="black" rx="2"/><rect x="537.0015258789062" y="192.19444274902344" width="55.996986389160156" height="19.111119270324707" fill="black" rx="2"/><rect x="78.00607299804688" y="217.26388549804688" width="63.987876892089844" height="21.472230911254883" fill="black" rx="2"/><rect x="82.00151824951172" y="234.4444580078125" width="55.996986389160156" height="19.111119270324707" fill="black" rx="2"/><rect x="289.34222412109375" y="217.26388549804688" width="101.31558990478516" height="21.472230911254883" fill="black" rx="2"/><rect x="279.2226257324219" y="234.4444580078125" width="121.55474853515625" height="19.111119270324707" fill="black" rx="2"/><rect x="533.006103515625" y="217.26388549804688" width="63.987876892089844" height="21.472230911254883" fill="black" rx="2"/><rect x="525.0004272460938" y="234.4444580078125" width="79.9991683959961" height="19.111119270324707" fill="black" rx="2"/><rect x="172.01060485839844" y="299.263916015625" width="105.9787826538086" height="21.472230911254883" fill="black" rx="2"/><rect x="154.78187561035156" y="316.4444580078125" width="140.43626403808594" height="19.111119270324707" fill="black" rx="2"/><rect x="276.7471618652344" y="365.2638854980469" width="126.50570678710938" height="21.472230911254883" fill="black" rx="2"/><rect x="252.58633422851562" y="386.4444580078125" width="174.8273468017578" height="19.111119270324707" fill="black" rx="2"/><rect x="488.2853698730469" y="364.1944274902344" width="53.42927932739258" height="19.111119270324707" fill="black" rx="2"/><rect x="528.0060424804688" y="419.2638854980469" width="63.987876892089844" height="21.472230911254883" fill="black" rx="2"/><rect x="122.75997161865234" y="364.1944274902344" width="74.48007202148438" height="19.111119270324707" fill="black" rx="2"/><rect x="74.00910186767578" y="419.2638854980469" width="91.98181915283203" height="21.472230911254883" fill="black" rx="2"/><rect x="351.0000305175781" y="406.1944580078125" width="36.79819297790527" height="19.111119270324707" fill="black" rx="2"/><rect x="269.5937194824219" y="445.2638854980469" width="140.8125762939453" height="21.472230911254883" fill="black" rx="2"/><rect x="251.38365173339844" y="466.4444580078125" width="177.23272705078125" height="19.111119270324707" fill="black" rx="2"/><rect x="269.5679016113281" y="525.263916015625" width="140.86422729492188" height="21.472230911254883" fill="black" rx="2"/><rect x="253.228271484375" y="546.4444580078125" width="173.54348754882812" height="19.111119270324707" fill="black" rx="2"/><rect x="268.49432373046875" y="605.263916015625" width="143.0113525390625" height="21.472230911254883" fill="black" rx="2"/><rect x="232.94483947753906" y="626.4444580078125" width="214.1103515625" height="19.111119270324707" fill="black" rx="2"/><rect x="582.0029907226562" y="655.4444580078125" width="69.99395751953125" height="19.111119270324707" fill="black" rx="2"/><rect x="573.159912109375" y="672.4444580078125" width="87.68016815185547" height="19.111119270324707" fill="black" rx="2"/><rect x="262.75018310546875" y="685.263916015625" width="154.49964904785156" height="21.472230911254883" fill="black" rx="2"/><rect x="248.70895385742188" y="706.4444580078125" width="182.58212280273438" height="19.111119270324707" fill="black" rx="2"/><rect x="294.00909423828125" y="765.263916015625" width="91.98181915283203" height="21.472230911254883" fill="black" rx="2"/><rect x="271.423583984375" y="786.4444580078125" width="137.15284729003906" height="19.111119270324707" fill="black" rx="2"/><rect x="52" y="844.1945190429688" width="43.99958038330078" height="19.111119270324707" fill="black" rx="2"/><rect x="112" y="846.1944580078125" width="79.99916076660156" height="19.111119270324707" fill="black" rx="2"/><rect x="226" y="846.1944580078125" width="79.99918365478516" height="19.111119270324707" fill="black" rx="2"/><rect x="340" y="846.1944580078125" width="84.02043914794922" height="19.111119270324707" fill="black" rx="2"/><rect x="456" y="846.1944580078125" width="81.99876403808594" height="19.111119270324707" fill="black" rx="2"/><rect x="112" y="870.1944580078125" width="96.01783752441406" height="19.111119270324707" fill="black" rx="2"/><rect x="250.00001525878906" y="870.1944580078125" width="68.00177001953125" height="19.111119270324707" fill="black" rx="2"/></mask>
+                
+                  <style>
+                    /* ── 字体基础 ── */
+                    .svg-font { font-family: 'DM Sans', -apple-system, 'Segoe UI', sans-serif; }
+                
+                    /* ── 文字颜色 ── */
+                    .t-title   { fill: #1a1916; }
+                    .t-sub     { fill: #5a5850; }
+                    .t-muted   { fill: #9a9890; }
+                    .t-purple  { fill: #3c3489; }
+                    .t-purple2 { fill: #5344b7; }
+                    .t-green   { fill: #085041; }
+                    .t-green2  { fill: #0f6e56; }
+                    .t-green3  { fill: #275a0a; }
+                    .t-green4  { fill: #3b6d11; }
+                    .t-orange  { fill: #633808; }
+                    .t-orange2 { fill: #854f0b; }
+                    .t-red     { fill: #711b13; }
+                    .t-red2    { fill: #7f2c28; }
+                    .t-blue    { fill: #0c447c; }
+                    .t-blue2   { fill: #185fa5; }
+                
+                    /* ── 矩形填充/描边 ── */
+                    .r-neutral  { fill: #f1efe8; stroke: #5f5e5a; stroke-width: 0.5; }
+                    .r-purple   { fill: #eeedfe; stroke: #534ab7; stroke-width: 0.5; }
+                    .r-green-b  { fill: #e1f5ee; stroke: #0f6e56; stroke-width: 0.5; }
+                    .r-green-c  { fill: #eaf3de; stroke: #3b6d11; stroke-width: 0.5; }
+                    .r-orange   { fill: #faeeda; stroke: #854f0b; stroke-width: 0.5; }
+                    .r-red-main { fill: #faece7; stroke: #993c1d; stroke-width: 0.5; }
+                    .r-red-out  { fill: #fcebeb; stroke: #a32d2d; stroke-width: 0.5; }
+                    .r-blue     { fill: #e6f1fb; stroke: #185fa5; stroke-width: 0.5; }
+                    .r-legend   { fill: none; stroke: rgba(31,30,29,0.15); stroke-width: 0.5; stroke-dasharray: 4 3; }
+                
+                    /* ── 连线 ── */
+                    .l-main    { fill: none; stroke: rgb(115,114,108); stroke-width: 1.5; }
+                    .l-thin    { fill: none; stroke: rgba(31,30,29,0.3); stroke-width: 0.8; }
+                    .l-reject  { fill: none; stroke: #E24B4A; stroke-width: 0.8; stroke-dasharray: 4 3; }
+                    .l-edit    { fill: none; stroke: #BA7517; stroke-width: 0.8; stroke-dasharray: 4 3; }
+                
+                    /* ── 暗黑模式覆盖 ── */
+                    [data-theme="dark"] .t-title   { fill: #ffffff; }
+                    [data-theme="dark"] .t-sub     { fill: #d0cec8; }
+                    [data-theme="dark"] .t-purple  { fill: #c8c0ff; }
+                    [data-theme="dark"] .t-purple2 { fill: #b0a8ff; }
+                    [data-theme="dark"] .t-green   { fill: #7fffd4; }
+                    [data-theme="dark"] .t-green2  { fill: #5ee8b8; }
+                    [data-theme="dark"] .t-green3  { fill: #c8f564; }
+                    [data-theme="dark"] .t-green4  { fill: #a8d84a; }
+                    [data-theme="dark"] .t-orange  { fill: #ffe0a0; }
+                    [data-theme="dark"] .t-orange2 { fill: #ffb84d; }
+                    [data-theme="dark"] .t-red     { fill: #ffc0b8; }
+                    [data-theme="dark"] .t-red2    { fill: #ff9090; }
+                    [data-theme="dark"] .t-blue    { fill: #a8d8ff; }
+                    [data-theme="dark"] .t-blue2   { fill: #70b8ff; }
+                
+                    [data-theme="dark"] .r-neutral  { fill: #26262e; stroke: #636059; stroke-width: 0.8; }
+                    [data-theme="dark"] .r-purple   { fill: #2a2450; stroke: #7b6ef0; stroke-width: 0.8; }
+                    [data-theme="dark"] .r-green-b  { fill: #0d2e26; stroke: #2dd4a8; stroke-width: 0.8; }
+                    [data-theme="dark"] .r-green-c  { fill: #1a2e0a; stroke: #6aaa30; stroke-width: 0.8; }
+                    [data-theme="dark"] .r-orange   { fill: #2e1e04; stroke: #c87e1a; stroke-width: 0.8; }
+                    [data-theme="dark"] .r-red-main { fill: #2e0e08; stroke: #cc4a30; stroke-width: 0.8; }
+                    [data-theme="dark"] .r-red-out  { fill: #2e0808; stroke: #cc3030; stroke-width: 0.8; }
+                    [data-theme="dark"] .r-blue     { fill: #0a1e38; stroke: #3a78c4; stroke-width: 0.8; }
+                    [data-theme="dark"] .r-legend   { fill: none; stroke: rgba(255,255,255,0.15); stroke-width: 0.5; stroke-dasharray: 4 3; }
+                
+                    [data-theme="dark"] .l-main    { stroke: #a09e97; }
+                    [data-theme="dark"] .l-thin    { stroke: rgba(255,255,255,0.15); }
+                    [data-theme="dark"] .l-reject  { stroke: #ff6b6b; }
+                    [data-theme="dark"] .l-edit    { stroke: #f5a623; }
+                  </style>
+                </defs>
+                
+                <!-- Title -->
+                <text x="340" y="30" text-anchor="middle" class="svg-font t-title" style="font-size:15px;font-weight:500">Pre-Flight Agent — 完整工作流</text>
+                
+                <!-- ───── 用户输入 ───── -->
+                <g>
+                  <rect x="240" y="50" width="200" height="44" rx="8" class="r-neutral"/>
+                  <text x="340" y="68" text-anchor="middle" dominant-baseline="central" class="svg-font t-title" style="font-size:14px;font-weight:500">用户输入</text>
+                  <text x="340" y="84" text-anchor="middle" dominant-baseline="central" class="svg-font t-sub" style="font-size:12px">自然语言描述需求</text>
+                </g>
+                
+                <line x1="340" y1="94" x2="340" y2="118" marker-end="url(#arrow)" class="l-main"/>
+                
+                <!-- ───── Step0 意图识别 ───── -->
+                <g>
+                  <rect x="200" y="118" width="280" height="56" rx="8" class="r-purple"/>
+                  <text x="340" y="138" text-anchor="middle" dominant-baseline="central" class="svg-font t-purple" style="font-size:14px;font-weight:500">Step 0 · 意图识别</text>
+                  <text x="340" y="158" text-anchor="middle" dominant-baseline="central" class="svg-font t-purple2" style="font-size:12px">Qwen3-30B · 三分类判断</text>
+                </g>
+                
+                <line x1="340" y1="174" x2="340" y2="192" marker-end="url(#arrow)" class="l-main"/>
+                
+                <!-- 分支标签行 -->
+                <text x="110" y="206" text-anchor="middle" class="svg-font t-muted" style="font-size:12px">新需求</text>
+                <text x="340" y="206" text-anchor="middle" class="svg-font t-muted" style="font-size:12px">补充信息</text>
+                <text x="565" y="206" text-anchor="middle" class="svg-font t-muted" style="font-size:12px">确认投产</text>
+                
+                <!-- 横线分叉 -->
+                <line x1="110" y1="192" x2="565" y2="192" class="l-thin"/>
+                <line x1="110" y1="192" x2="110" y2="210" marker-end="url(#arrow)" mask="url(#imagine-text-gaps-ku5p4v)" class="l-main"/>
+                <line x1="340" y1="192" x2="340" y2="210" marker-end="url(#arrow)" mask="url(#imagine-text-gaps-ku5p4v)" class="l-main"/>
+                <line x1="565" y1="192" x2="565" y2="210" marker-end="url(#arrow)" mask="url(#imagine-text-gaps-ku5p4v)" class="l-main"/>
+                
+                <!-- ─── 分支A: 新需求 → 重置记忆 ─── -->
+                <g>
+                  <rect x="40" y="210" width="140" height="44" rx="8" class="r-neutral"/>
+                  <text x="110" y="228" text-anchor="middle" dominant-baseline="central" class="svg-font t-title" style="font-size:14px;font-weight:500">重置记忆</text>
+                  <text x="110" y="244" text-anchor="middle" dominant-baseline="central" class="svg-font t-sub" style="font-size:12px">清空历史</text>
+                </g>
+                
+                <!-- ─── 分支B: 补充信息 → 读取+合并 ─── -->
+                <g>
+                  <rect x="255" y="210" width="170" height="44" rx="8" class="r-green-b"/>
+                  <text x="340" y="228" text-anchor="middle" dominant-baseline="central" class="svg-font t-green" style="font-size:14px;font-weight:500">记忆读取 · 合并</text>
+                  <text x="340" y="244" text-anchor="middle" dominant-baseline="central" class="svg-font t-green2" style="font-size:12px">ERNIE-4.0 · 新旧融合</text>
+                </g>
+                
+                <!-- ─── 分支C: 确认投产 → 结束 ─── -->
+                <g>
+                  <rect x="492" y="210" width="146" height="44" rx="8" class="r-green-c"/>
+                  <text x="565" y="228" text-anchor="middle" dominant-baseline="central" class="svg-font t-green3" style="font-size:14px;font-weight:500">确认投产</text>
+                  <text x="565" y="244" text-anchor="middle" dominant-baseline="central" class="svg-font t-green4" style="font-size:12px">输出投产指令</text>
+                </g>
+                
+                <!-- A和B汇合向下 -->
+                <line x1="110" y1="254" x2="110" y2="278" class="l-thin"/>
+                <line x1="340" y1="254" x2="340" y2="278" class="l-thin"/>
+                <line x1="110" y1="278" x2="340" y2="278" class="l-thin"/>
+                <line x1="225" y1="278" x2="225" y2="292" marker-end="url(#arrow)" class="l-main"/>
+                
+                <!-- ───── 流程输入选择器 ───── -->
+                <g>
+                  <rect x="110" y="292" width="230" height="44" rx="8" class="r-neutral"/>
+                  <text x="225" y="310" text-anchor="middle" dominant-baseline="central" class="svg-font t-title" style="font-size:14px;font-weight:500">流程输入选择器</text>
+                  <text x="225" y="326" text-anchor="middle" dominant-baseline="central" class="svg-font t-sub" style="font-size:12px">Python代码 · 选最终文本</text>
+                </g>
+                
+                <line x1="225" y1="336" x2="340" y2="356" marker-end="url(#arrow)" class="l-main"/>
+                
+                <!-- ───── Step1 智能阻断器 ───── -->
+                <g>
+                  <rect x="200" y="356" width="280" height="56" rx="8" class="r-red-main"/>
+                  <text x="340" y="376" text-anchor="middle" dominant-baseline="central" class="svg-font t-red" style="font-size:14px;font-weight:500">Step 1 · 智能阻断器</text>
+                  <text x="340" y="396" text-anchor="middle" dominant-baseline="central" class="svg-font t-orange2" style="font-size:12px">DeepSeek-V3.2 · 三级红线检查</text>
+                </g>
+                
+                <!-- REJECT分支 -->
+                <line x1="480" y1="384" x2="560" y2="384" class="l-reject"/>
+                <line x1="560" y1="384" x2="560" y2="412" marker-end="url(#arrow)" class="l-main"/>
+                <text x="515" y="378" text-anchor="middle" class="svg-font t-red2" style="font-size:12px">REJECT</text>
+                <g>
+                  <rect x="500" y="412" width="120" height="36" rx="8" class="r-red-out"/>
+                  <text x="560" y="430" text-anchor="middle" dominant-baseline="central" class="svg-font t-red" style="font-size:14px;font-weight:500">拦截终止</text>
+                </g>
+                
+                <!-- NEED_EDIT分支 -->
+                <line x1="200" y1="384" x2="120" y2="384" class="l-edit"/>
+                <line x1="120" y1="384" x2="120" y2="412" marker-end="url(#arrow)" class="l-main"/>
+                <text x="160" y="378" text-anchor="middle" class="svg-font t-orange" style="font-size:12px">NEED_EDIT</text>
+                <g>
+                  <rect x="50" y="412" width="140" height="36" rx="8" class="r-orange"/>
+                  <text x="120" y="430" text-anchor="middle" dominant-baseline="central" class="svg-font t-orange" style="font-size:14px;font-weight:500">追问缺失字段</text>
+                </g>
+                
+                <!-- PASS向下 -->
+                <text x="355" y="420" class="svg-font t-green3" style="font-size:12px">PASS</text>
+                <line x1="340" y1="412" x2="340" y2="436" marker-end="url(#arrow)" class="l-main"/>
+                
+                <!-- ───── Step2.5 成本计算器 ───── -->
+                <g>
+                  <rect x="190" y="436" width="300" height="56" rx="8" class="r-orange"/>
+                  <text x="340" y="456" text-anchor="middle" dominant-baseline="central" class="svg-font t-orange" style="font-size:14px;font-weight:500">Step 2.5 · 成本计算器</text>
+                  <text x="340" y="476" text-anchor="middle" dominant-baseline="central" class="svg-font t-orange2" style="font-size:12px">ERNIE-4.0 · 参数提取+公式计算</text>
+                </g>
+                
+                <line x1="340" y1="492" x2="340" y2="516" marker-end="url(#arrow)" class="l-main"/>
+                
+                <!-- ───── Step2.6 决策路由器 ───── -->
+                <g>
+                  <rect x="200" y="516" width="280" height="56" rx="8" class="r-neutral"/>
+                  <text x="340" y="536" text-anchor="middle" dominant-baseline="central" class="svg-font t-title" style="font-size:14px;font-weight:500">Step 2.6 · 决策路由器</text>
+                  <text x="340" y="556" text-anchor="middle" dominant-baseline="central" class="svg-font t-sub" style="font-size:12px">Python代码 · APPROVE / EDIT</text>
+                </g>
+                
+                <line x1="340" y1="572" x2="340" y2="596" marker-end="url(#arrow)" class="l-main"/>
+                
+                <!-- ───── Step3 企业级生成器 ───── -->
+                <g>
+                  <rect x="170" y="596" width="340" height="56" rx="8" class="r-green-b"/>
+                  <text x="340" y="616" text-anchor="middle" dominant-baseline="central" class="svg-font t-green" style="font-size:14px;font-weight:500">Step 3 · 企业级生成器</text>
+                  <text x="340" y="636" text-anchor="middle" dominant-baseline="central" class="svg-font t-green2" style="font-size:12px">ERNIE-4.0 + RAG知识库 · 三档Prompt</text>
+                </g>
+                
+                <!-- RAG知识库标注 -->
+                <line x1="510" y1="624" x2="568" y2="660" class="l-thin" style="stroke-dasharray:3 3"/>
+                <g>
+                  <rect x="568" y="648" width="98" height="50" rx="6" class="r-green-b"/>
+                  <text x="617" y="665" text-anchor="middle" dominant-baseline="central" class="svg-font t-green2" style="font-size:12px">RAG知识库</text>
+                  <text x="617" y="682" text-anchor="middle" dominant-baseline="central" class="svg-font t-green2" style="font-size:12px">仙侠+镜头语言</text>
+                </g>
+                
+                <line x1="340" y1="652" x2="340" y2="676" marker-end="url(#arrow)" class="l-main"/>
+                
+                <!-- ───── Step4 C端回复生成器 ───── -->
+                <g>
+                  <rect x="190" y="676" width="300" height="56" rx="8" class="r-blue"/>
+                  <text x="340" y="696" text-anchor="middle" dominant-baseline="central" class="svg-font t-blue" style="font-size:14px;font-weight:500">Step 4 · C端回复生成器</text>
+                  <text x="340" y="716" text-anchor="middle" dominant-baseline="central" class="svg-font t-blue2" style="font-size:12px">ERNIE-Speed · JSON→自然语言</text>
+                </g>
+                
+                <line x1="340" y1="732" x2="340" y2="756" marker-end="url(#arrow)" class="l-main"/>
+                
+                <!-- ───── 用户输出 ───── -->
+                <g>
+                  <rect x="230" y="756" width="220" height="56" rx="8" class="r-neutral"/>
+                  <text x="340" y="776" text-anchor="middle" dominant-baseline="central" class="svg-font t-title" style="font-size:14px;font-weight:500">用户收到回复</text>
+                  <text x="340" y="796" text-anchor="middle" dominant-baseline="central" class="svg-font t-sub" style="font-size:12px">成本+决策+三档Prompt</text>
+                </g>
+                
+                <!-- 图例 -->
+                <rect x="40" y="832" width="610" height="72" rx="8" class="r-legend"/>
+                <text x="56" y="856" class="svg-font t-sub" style="font-size:13px;font-weight:500">图例：</text>
+
+                <rect x="96" y="844" width="18" height="18" rx="4" style="fill:#c7c2ff;stroke:#5344b7;stroke-width:1.5"/>
+                <text x="120" y="857" class="svg-font t-title" style="font-size:13px">自然语言模型</text>
+
+                <rect x="230" y="844" width="18" height="18" rx="4" style="fill:#ffb8a8;stroke:#993c1d;stroke-width:1.5"/>
+                <text x="254" y="857" class="svg-font t-title" style="font-size:13px">安全检查模型</text>
+
+                <rect x="364" y="844" width="18" height="18" rx="4" style="fill:#ffd08a;stroke:#854f0b;stroke-width:1.5"/>
+                <text x="388" y="857" class="svg-font t-title" style="font-size:13px">计算/生成模型</text>
+
+                <rect x="498" y="844" width="18" height="18" rx="4" style="fill:#7de8c8;stroke:#0f6e56;stroke-width:1.5"/>
+                <text x="522" y="857" class="svg-font t-title" style="font-size:13px">RAG增强生成</text>
+
+                <rect x="96" y="874" width="18" height="18" rx="4" style="fill:#dddbd2;stroke:#5f5e5a;stroke-width:1.5"/>
+                <text x="120" y="887" class="svg-font t-title" style="font-size:13px">代码节点/纯逻辑</text>
+
+                <rect x="250" y="874" width="18" height="18" rx="4" style="fill:#90c8ff;stroke:#185fa5;stroke-width:1.5"/>
+                <text x="274" y="887" class="svg-font t-title" style="font-size:13px">前端展示层</text>
+                
+                </svg>
+            </div>
+          </div>
+      </div>
+    
+      <!-- Model selection rationale cards -->
+      <div class="decisions-grid" style="margin-top:24px">
+        <div class="dec-card reveal">
+          <div class="dec-q">STEP 0 · Qwen3-30B</div>
+          <div class="dec-title" style="color:var(--purple)"><span class="zh">为什么用 Qwen 做意图识别？</span><span class="en">Why Qwen for intent classification?</span></div>
+          <div class="dec-ans"><span class="zh">意图识别是三分类任务，核心诉求是分类准确率而非生成质量。Qwen3-30B 在中文自然语言理解和文本分类上表现更稳定，误判率低于测试中的其他备选模型。</span><span class="en">Intent classification is a 3-class task. The core need is accuracy, not generation quality. Qwen3-30B demonstrated superior stability in Chinese NLU classification with the lowest error rate among models tested.</span></div>
+        </div>
+        <div class="dec-card reveal">
+          <div class="dec-q">STEP 1 · DeepSeek-V3.2</div>
+          <div class="dec-title" style="color:var(--red)"><span class="zh">为什么用 DeepSeek 做合规检查？</span><span class="en">Why DeepSeek for compliance?</span></div>
+          <div class="dec-ans"><span class="zh">合规检查需要对语义风险有深层理解——"暗黑系打斗"和"暴力血腥"是不同的。DeepSeek 在安全对齐和结构化 JSON 输出上的稳定性高于备选模型，且误判率更低。</span><span class="en">Compliance requires nuanced semantic risk judgment — "dark style combat" vs. "graphic violence" are different. DeepSeek excels in safety alignment and stable structured JSON output with lower false positive rates.</span></div>
+        </div>
+        <div class="dec-card reveal">
+          <div class="dec-q">STEP 2.5 + STEP 3 · ERNIE-4.0</div>
+          <div class="dec-title" style="color:var(--amber)"><span class="zh">为什么成本和 Prompt 都用 ERNIE？</span><span class="en">Why ERNIE for cost & prompts?</span></div>
+          <div class="dec-ans"><span class="zh">ERNIE-4.0 在中文内容理解和生成上有显著优势，结合仙侠场景 RAG 知识库的效果最好。同时它对百度平台的千帆工作流集成度最高，调用延迟最低。</span><span class="en">ERNIE-4.0 has a clear advantage in Chinese content understanding and generation, with the best results when combined with the xianxia RAG knowledge base and the lowest latency on the Qianfan platform.</span></div>
+        </div>
+        <div class="dec-card reveal">
+          <div class="dec-q">STEP 2.6 · Python Code</div>
+          <div class="dec-title" style="color:var(--teal)"><span class="zh">为什么决策路由不用模型？</span><span class="en">Why use code instead of a model for routing?</span></div>
+          <div class="dec-ans"><span class="zh">决策路由是确定性逻辑：缺字段就 EDIT，违规就 REJECT，超预算就追加降本建议。用大模型做 if-else 浪费且不稳定。代码节点 100% 可预测，响应几乎无延迟。</span><span class="en">Decision routing is deterministic: missing fields → EDIT, violations → REJECT, over budget → add reduction tips. Using an LLM for if-else logic is wasteful and unstable. Code nodes are 100% predictable with near-zero latency.</span></div>
+        </div>
+      </div>
+    </section>
+    
+    <div class="divider"></div>
+    
+    <!-- WORKFLOW -->
+    <div class="divider"></div>
+
+    <section id="workflow">
+      <div class="section-label">
+        <span class="zh">工作流拆解</span>
+        <span class="en">Workflow Breakdown</span>
+      </div>
+      <h2>
+        <span class="zh">每个节点，<br/>一个明确职责</span>
+        <span class="en">Every node,<br/>one clear responsibility</span>
+      </h2>
+      <p class="section-desc" style="margin-bottom:0">
+        <span class="zh">将鼠标悬停在任意节点上，查看该节点的详细职责、输入/输出与模型选型说明。</span>
+        <span class="en">Hover any node to see its responsibilities, inputs/outputs, and model selection rationale.</span>
+      </p>
+    
+      <!-- WORKFLOW DIAGRAM (JS-rendered) -->
+      <div class="wf-diagram" id="wf-diagram"></div>
+    
+      <!-- TOOLTIP (desktop) -->
+      <div class="wf-tooltip" id="wf-tooltip">
+        <div class="wf-tooltip-step" id="tt-step"></div>
+        <div class="wf-tooltip-title" id="tt-title"></div>
+        <div class="wf-tooltip-divider"></div>
+        <div class="wf-tooltip-row">
+          <div class="wf-tooltip-item">
+            <span class="wf-tooltip-label zh">职责</span>
+            <span class="wf-tooltip-label en">Responsibility</span>
+            <span class="wf-tooltip-val" id="tt-role"></span>
+          </div>
+          <div class="wf-tooltip-item">
+            <span class="wf-tooltip-label zh">输入</span>
+            <span class="wf-tooltip-label en">Input</span>
+            <span class="wf-tooltip-val" id="tt-input"></span>
+          </div>
+          <div class="wf-tooltip-item">
+            <span class="wf-tooltip-label zh">输出</span>
+            <span class="wf-tooltip-label en">Output</span>
+            <span class="wf-tooltip-val" id="tt-output"></span>
+          </div>
+        </div>
+        <div class="wf-tooltip-divider"></div>
+        <div class="wf-tooltip-model" id="tt-model"></div>
+      </div>
+    
+      <!-- MOBILE BOTTOM SHEET -->
+      <div class="wf-mobile-sheet" id="wf-sheet">
+        <div class="wf-mobile-sheet-handle"></div>
+        <button class="wf-mobile-close" onclick="closeSheet()">✕</button>
+        <div class="wf-tooltip-step" id="sheet-step"></div>
+        <div class="wf-tooltip-title" id="sheet-title"></div>
+        <div class="wf-tooltip-divider"></div>
+        <div class="wf-tooltip-row">
+          <div class="wf-tooltip-item">
+            <span class="wf-tooltip-label zh">职责</span>
+            <span class="wf-tooltip-label en">Responsibility</span>
+            <span class="wf-tooltip-val" id="sheet-role"></span>
+          </div>
+          <div class="wf-tooltip-item">
+            <span class="wf-tooltip-label zh">输入</span>
+            <span class="wf-tooltip-label en">Input</span>
+            <span class="wf-tooltip-val" id="sheet-input"></span>
+          </div>
+          <div class="wf-tooltip-item">
+            <span class="wf-tooltip-label zh">输出</span>
+            <span class="wf-tooltip-label en">Output</span>
+            <span class="wf-tooltip-val" id="sheet-output"></span>
+          </div>
+        </div>
+        <div class="wf-tooltip-model" id="sheet-model"></div>
+      </div>
+    </section>
+
+    
+    <div class="divider"></div>
+    
+    <!-- DECISIONS -->
+    <section id="decisions">
+      <div class="section-label"><span class="zh">关键设计决策</span><span class="en">Key Design Decisions</span></div>
+      <h2><span class="zh">为什么<em>这样</em>设计？</span><span class="en">Why <em>this</em> design,<br/>not that?</span></h2>
+    
+      <div class="decisions-grid">
+        <div class="dec-card featured reveal">
+          <div>
+            <div class="dec-q"><span class="zh">核心架构选择</span><span class="en">Core Architecture Choice</span></div>
+            <div class="dec-title" style="font-size:22px"><span class="zh">为什么不是单轮生成？</span><span class="en">Why not single-turn generation?</span></div>
+            <p class="dec-ans" style="margin-top:12px">
+              <span class="zh">单轮生成适合信息完整的场景。但短剧创作者的现实是：他们往往不知道自己需要什么参数，不了解 AIGC 工具的成本结构，也不懂专业 Prompt 语法。多轮记忆机制允许用户渐进式补充信息，Agent 负责把碎片化输入拼装成完整需求，这才是真正降低用户认知门槛的设计。</span>
+              <span class="en">Single-turn works only when all information is available upfront. But short drama creators typically don't know what parameters they need, don't understand AIGC cost structures, and can't write professional prompts. Multi-turn memory lets users incrementally provide information — the Agent assembles fragments into complete requirements, truly lowering the cognitive barrier.</span>
+            </p>
+          </div>
+          <div>
+            <div style="border:1px solid var(--border);border-radius:12px;padding:24px;background:var(--bg2)">
+              <div style="font-family:var(--font-mono);font-size:10px;color:var(--text3);letter-spacing:0.1em;margin-bottom:16px">CONVERSATION TRACE</div>
+              <div style="display:flex;flex-direction:column;gap:10px">
+                <div style="background:var(--surface);padding:10px 14px;border-radius:8px;font-size:12px;color:var(--text2);border-left:2px solid var(--border2)">
+                  <span style="color:var(--text3);font-family:var(--font-mono);font-size:10px">User · Turn 1</span><br/>
+                  <span class="zh">我想做仙侠打斗视频</span><span class="en">I want a xianxia fight video</span>
+                </div>
+                <div style="background:var(--accent-dim2);padding:10px 14px;border-radius:8px;font-size:12px;color:var(--text2);border-left:2px solid rgba(200,245,100,0.3)">
+                  <span style="color:var(--accent);font-family:var(--font-mono);font-size:10px">Agent · Missing fields</span><br/>
+                  <span class="zh">请问视频时长、分辨率和预算是多少？</span><span class="en">Please provide duration, resolution, and budget.</span>
+                </div>
+                <div style="background:var(--surface);padding:10px 14px;border-radius:8px;font-size:12px;color:var(--text2);border-left:2px solid var(--border2)">
+                  <span style="color:var(--text3);font-family:var(--font-mono);font-size:10px">User · Turn 2</span><br/>
+                  15s · 1080p · ¥200
+                </div>
+                <div style="background:var(--accent-dim2);padding:10px 14px;border-radius:8px;font-size:12px;color:var(--text2);border-left:2px solid rgba(200,245,100,0.3)">
+                  <span style="color:var(--accent);font-family:var(--font-mono);font-size:10px">Agent · Memory merged ✓</span><br/>
+                  <span class="zh">成本估算: ¥276-374。超出预算，建议缩短至8秒。</span><span class="en">Cost: ¥276-374. Over budget — suggest reducing to 8s.</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+    
+        <div class="dec-card reveal">
+          <div class="dec-q"><span class="zh">风控设计</span><span class="en">Risk Control Design</span></div>
+          <div class="dec-title"><span class="zh">为什么三级阻断，而不是一级？</span><span class="en">Why 3-tier blocking, not 1?</span></div>
+          <div class="dec-ans">
+            <span class="zh">合规、完整性和预算是三种完全不同性质的问题，处理方式也不同：合规需要硬性拒绝（不给任何优化建议以防止绕过）；完整性需要追问；预算需要给出具体的降本路径。混在一起处理会导致逻辑混乱和用户体验割裂。</span>
+            <span class="en">Compliance, completeness, and budget are three fundamentally different problem types requiring different handling: compliance → hard reject (no suggestions, to prevent bypassing); completeness → ask questions; budget → concrete cost-reduction paths. Combining them creates logical confusion and broken UX.</span>
+          </div>
+        </div>
+    
+        <div class="dec-card reveal">
+          <div class="dec-q"><span class="zh">RAG 设计</span><span class="en">RAG Design</span></div>
+          <div class="dec-title"><span class="zh">为什么要建垂直知识库？</span><span class="en">Why build a vertical knowledge base?</span></div>
+          <div class="dec-ans">
+            <span class="zh">通用大模型的训练数据不包含"御剑飞行"对应的专业英文 Prompt 组合。让模型自由发挥会产生幻觉（如 "flying man on sword"），生成质量极差。RAG 知识库将中文意图硬绑定到专业 Prompt，从根本上消灭了这类幻觉，并通过负向词防止风格偏移。</span>
+            <span class="en">General LLM training data doesn't include expert English prompt equivalents for xianxia terms. Free generation produces hallucinations like "flying man on sword." The RAG KB hard-binds Chinese intent to professional prompts, fundamentally eliminating this class of hallucination, while negative prompts prevent style drift.</span>
+          </div>
+        </div>
+    
+        <div class="dec-card reveal">
+          <div class="dec-q"><span class="zh">成本估算设计</span><span class="en">Cost Estimation Design</span></div>
+          <div class="dec-title"><span class="zh">为什么给成本区间而不是精确数字？</span><span class="en">Why cost ranges, not exact figures?</span></div>
+          <div class="dec-ans">
+            <span class="zh">AIGC 生成成本受多种运行时因素影响（服务器负载、模型版本、排队时间），精确单价无法保证。区间（下限×0.85，上限×1.15）能诚实地表达不确定性，同时给用户足够的预算决策空间，避免因精确但错误的数字引发信任危机。</span>
+            <span class="en">AIGC generation costs are affected by runtime factors (server load, model versions, queue time). Exact prices can't be guaranteed. Ranges (lower×0.85, upper×1.15) honestly represent uncertainty while giving users adequate decision-making space, avoiding trust issues from precise-but-wrong numbers.</span>
+          </div>
+        </div>
+      </div>
+    </section>
+    
+    <div class="divider"></div>
+    
+    <!-- ITERATION -->
+    <section id="iteration">
+      <div class="section-label"><span class="zh">迭代与失败复盘</span><span class="en">Iteration & Failure Analysis</span></div>
+      <h2><span class="zh">从 v0.1 到 v0.3，<br/>每次失败都有代价</span><span class="en">From v0.1 to v0.3,<br/>every failure had a cost</span></h2>
+    
+      <div class="iter-timeline">
+        <div class="ws-item" style="margin-bottom:0">
+          <div class="ws-line"></div>
+        </div>
+    
+        <!-- v0.1 -->
+        <div class="iter-item">
+          <div class="iter-dot"></div>
+          <div class="iter-ver"><div class="iter-ver-tag">v0.1</div></div>
+          <div class="iter-content reveal">
+            <div class="iter-title"><span class="zh">通用投产预审 · 基础版</span><span class="en">General Pre-Production Review · Baseline</span></div>
+            <div class="iter-desc"><span class="zh">接收需求 → 简单预审 → 生成通用绘画 Prompt → 输出结论。功能可用，但生成质量低，专业度严重不足。</span><span class="en">Receive input → basic review → generic painting prompt → output conclusion. Functional but low quality, severely lacking professional depth.</span></div>
+            <div class="iter-fails">
+              <div class="iter-fail">
+                <span class="iter-fail-icon">✗</span>
+                <span><span class="zh">生成"big house, flying man"而不是专业仙侠术语，AIGC 工具效果极差</span><span class="en">Generated "big house, flying man" instead of professional xianxia terminology — AIGC results were terrible</span></span>
+              </div>
+              <div class="iter-fail">
+                <span class="iter-fail-icon">✗</span>
+                <span><span class="zh">单轮对话，用户必须一次说完所有参数，体验极差</span><span class="en">Single-turn only — users had to specify all parameters at once, terrible UX</span></span>
+              </div>
+            </div>
+          </div>
+        </div>
+    
+        <!-- v0.2 -->
+        <div class="iter-item">
+          <div class="iter-dot"></div>
+          <div class="iter-ver"><div class="iter-ver-tag">v0.2</div></div>
+          <div class="iter-content reveal">
+            <div class="iter-title"><span class="zh">接入 RAG 知识库 · 漫剧专项</span><span class="en">RAG Integration · Drama Specialization</span></div>
+            <div class="iter-desc"><span class="zh">构建首个仙侠场景 RAG 知识库，升级为分镜表输出格式。专业度大幅提升，但成本计算和阻断逻辑出现新问题。</span><span class="en">Built the first xianxia RAG KB, upgraded to storyboard format. Professional quality improved significantly, but cost calculation and blocking logic surfaced new issues.</span></div>
+            <div class="iter-fails">
+              <div class="iter-fail">
+                <span class="iter-fail-icon">⚠</span>
+                <span><span class="zh">成本计算失败率高：时长提取错误导致几个用例误差高达 70-95%（测试 001、014）</span><span class="en">High cost calculation failure rate: duration extraction errors caused 70-95% error in test cases 001, 014</span></span>
+              </div>
+              <div class="iter-fail">
+                <span class="iter-fail-icon">⚠</span>
+                <span><span class="zh">阻断器过于死板：专业用户直接贴入分镜脚本，被误判为"信息缺失"而拦截</span><span class="en">Interceptor too rigid: professional users pasting storyboard scripts were wrongly blocked for "missing information"</span></span>
+              </div>
+              <div class="iter-fail">
+                <span class="iter-fail-icon">⚠</span>
+                <span><span class="zh">平均响应时间 70 秒，用户体验明显下降</span><span class="en">Average response time 70 seconds, noticeably degraded UX</span></span>
+              </div>
+            </div>
+            <div class="iter-fix">
+              <strong><span class="zh">关键学习：</span><span class="en">Key learning: </span></strong>
+              <span class="zh">大模型适合理解任务，不适合精确计算。参数提取需要强制性约束（"必须从输入中提取，找不到则输出 null"），而非依赖模型自由判断。</span>
+              <span class="en">LLMs are good at understanding, not precise calculation. Parameter extraction needs hard constraints ("must extract from input, output null if not found"), not free model judgment.</span>
+            </div>
+          </div>
+        </div>
+    
+        <!-- v0.2.5 -->
+        <div class="iter-item">
+          <div class="iter-dot"></div>
+          <div class="iter-ver"><div class="iter-ver-tag">v0.2.5</div></div>
+          <div class="iter-content reveal">
+            <div class="iter-title"><span class="zh">导演模式 · 视听双轨</span><span class="en">Director Mode · Visual-Audio Dual Track</span></div>
+            <div class="iter-desc"><span class="zh">从"摄影师"升级为"导演"：不只生成画面描述，还自动生成旁白、音效和关键台词，形成完整的微剧本。全中文本地化。</span><span class="en">Upgraded from "photographer" to "director": generate not just visual descriptions, but narration, sound effects, and key dialogue — forming a complete micro-screenplay. Full Chinese localization.</span></div>
+            <div class="iter-fix">
+              <strong><span class="zh">突破：</span><span class="en">Breakthrough: </span></strong>
+              <span class="zh">用户价值从"获得一组绘画词"升级为"获得一个可直接拍摄的短剧本"。产品定位从工具升级为导演助手。</span>
+              <span class="en">User value upgraded from "getting drawing keywords" to "getting a directly filmable short screenplay." Product positioning shifted from tool to director's assistant.</span>
+            </div>
+          </div>
+        </div>
+    
+        <!-- v0.3 -->
+        <div class="iter-item current">
+          <div class="iter-dot"></div>
+          <div class="iter-ver"><div class="iter-ver-tag" style="border-color:rgba(200,245,100,0.3);color:var(--accent)">v0.3 Beta</div></div>
+          <div class="iter-content reveal">
+            <div class="iter-title"><span class="zh">智能化升级 · 工程质量提升</span><span class="en">Intelligence Upgrade · Engineering Quality</span></div>
+            <div class="iter-desc"><span class="zh">针对 v0.2 测试中发现的核心问题进行专项优化：VIP 直通机制、时间戳解析、复杂度关键词映射、Step4 切换快速模型。</span><span class="en">Targeted fixes for issues found in v0.2 testing: VIP exemption, timestamp parsing, complexity keyword mapping, Step4 switched to fast model.</span></div>
+            <div class="iter-fix">
+              <strong><span class="zh">结果：</span><span class="en">Result: </span></strong>
+              <span class="zh">响应时间从 70s → 42s（-43%），参数提取成功率显著提升，合规拦截准确率 100%（2/2），Prompt 关键元素包含率 90%（18/20）。</span>
+              <span class="en">Response time 70s → 42s (−43%), parameter extraction success rate significantly improved, compliance accuracy 100% (2/2), prompt element coverage 90% (18/20).</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+    
+    <div class="divider"></div>
+    
+    <!-- RESULTS -->
+    <section id="results">
+      <div class="section-label"><span class="zh">成果与验证数据</span><span class="en">Results & Validated Metrics</span></div>
+      <h2><span class="zh">20 个测试用例，<br/>真实数据说话</span><span class="en">20 test cases,<br/>real numbers</span></h2>
+    
+      <div class="results-grid reveal">
+        <div class="result-card">
+          <div class="result-num">95%</div>
+          <div class="result-label"><span class="zh">需求理解准确率（18/20 用例 Prompt 关键元素完整）</span><span class="en">Requirement accuracy (18/20 cases with complete key elements)</span></div>
+        </div>
+        <div class="result-card">
+          <div class="result-num">&lt;15%</div>
+          <div class="result-label"><span class="zh">参数提取成功时的成本估算误差（中位误差 0%）</span><span class="en">Cost estimation error when extraction succeeds (median error: 0%)</span></div>
+        </div>
+        <div class="result-card">
+          <div class="result-num">42s</div>
+          <div class="result-label"><span class="zh">优化后平均响应时间（原 70s，提升 43%）</span><span class="en">Avg response time after optimization (was 70s, −43%)</span></div>
+        </div>
+        <div class="result-card">
+          <div class="result-num">100%</div>
+          <div class="result-label"><span class="zh">合规内容拦截准确率（2/2 违规用例全部正确）</span><span class="en">Compliance interception accuracy (2/2 violation cases correct)</span></div>
+        </div>
+      </div>
+    
+      <div class="results-detail reveal">
+        <div class="before-after">
+          <div class="ba-header">
+            <div class="ba-col before"><span class="zh">优化前 v0.1</span><span class="en">Before v0.1</span></div>
+            <div class="ba-col after"><span class="zh">优化后 v0.3</span><span class="en">After v0.3</span></div>
+          </div>
+          <div class="ba-rows">
+            <div class="ba-row">
+              <div class="ba-cell before"><span class="zh">"big house, flying man"<br/>通用无效输出</span><span class="en">"big house, flying man" — generic, unusable</span></div>
+              <div class="ba-cell after"><span class="zh">"floating islands, ancient pagodas, wuxia style"<br/>基于 RAG 知识库的专业输出</span><span class="en">"floating islands, ancient pagodas, wuxia style" — RAG-grounded professional output</span></div>
+            </div>
+            <div class="ba-row">
+              <div class="ba-cell before"><span class="zh">单图描述，人景混杂</span><span class="en">Single image description, mixed elements</span></div>
+              <div class="ba-cell after"><span class="zh">分镜表结构：环境/人物/动作独立拆解</span><span class="en">Storyboard format: environment/character/action separated</span></div>
+            </div>
+            <div class="ba-row">
+              <div class="ba-cell before"><span class="zh">无成本预估，投产即开盲盒</span><span class="en">No cost preview — production is a blind box</span></div>
+              <div class="ba-cell after"><span class="zh">动态成本区间 + 具体降本建议</span><span class="en">Dynamic cost range + specific reduction recommendations</span></div>
+            </div>
+            <div class="ba-row">
+              <div class="ba-cell before"><span class="zh">剧本拆解：数小时/集</span><span class="en">Script breakdown: hours per episode</span></div>
+              <div class="ba-cell after"><span class="zh">分钟级（平均 42 秒）</span><span class="en">Minutes (avg 42 seconds)</span></div>
+            </div>
+            <div class="ba-row">
+              <div class="ba-cell before"><span class="zh">风格容易跑偏，国漫变韩漫/日漫</span><span class="en">Style drift — Chinese style becomes Korean/Japanese</span></div>
+              <div class="ba-cell after"><span class="zh">锁定国漫/水墨风，负向词防跑偏</span><span class="en">Locked to Chinese ink painting style, negative prompts prevent drift</span></div>
+            </div>
+          </div>
+        </div>
+    
+        <div class="problem-card">
+          <div class="section-label" style="margin-bottom:16px"><span class="zh">诚实的数据说明</span><span class="en">Honest data note</span></div>
+          <p style="font-size:14px;color:var(--text2);line-height:1.8;margin-bottom:16px">
+            <span class="zh">测试报告显示整体成本估算平均误差为 22.7%，被少数参数提取失败的异常用例拉高（001: 70.2%, 014: 94.8%）。根因是提示词未强制要求提取失败时输出 null，导致系统用默认值静默计算。</span>
+            <span class="en">The test report shows an overall average cost error of 22.7%, inflated by a few parameter extraction failure outliers (case 001: 70.2%, case 014: 94.8%). Root cause: prompts didn't mandate null output on extraction failure, causing silent calculation with defaults.</span>
+          </p>
+          <p style="font-size:14px;color:var(--text2);line-height:1.8">
+            <span class="zh">在参数正确提取的用例中，公式层面误差&lt;15%，中位误差 0%。v0.3 已针对性修复。</span>
+            <span class="en">When extraction succeeded, formula-level error was &lt;15% with 0% median error. v0.3 specifically addressed this with hard extraction constraints.</span>
+          </p>
+        </div>
+      </div>
+    </section>
+    
+    <div class="divider"></div>
+    
+    <!-- STACK -->
+    <section id="stack">
+      <div class="section-label"><span class="zh">技术实现</span><span class="en">Technical Stack</span></div>
+      <h2><span class="zh">选型原则：<br/>适合的而非最贵的</span><span class="en">Selection principle:<br/>right fit, not most expensive</span></h2>
+    
+      <div class="stack-grid reveal">
+        <div class="stack-card">
+          <div class="stack-category"><span class="zh">编排平台</span><span class="en">Orchestration</span></div>
+          <div class="stack-items">
+            <div class="stack-item"><span class="stack-name"><span class="zh">百度千帆 AppBuilder</span><span class="en">Baidu Qianfan AppBuilder</span></span><span class="stack-spec">Workflow</span></div>
+            <div class="stack-item"><span class="stack-name"><span class="zh">节点类型</span><span class="en">Node types</span></span><span class="stack-spec">LLM+Code+Memory</span></div>
+          </div>
+        </div>
+        <div class="stack-card">
+          <div class="stack-category"><span class="zh">意图识别</span><span class="en">Intent Model</span></div>
+          <div class="stack-items">
+            <div class="stack-item"><span class="stack-name">Qwen3-30B-A3B</span><span class="stack-spec">Classification</span></div>
+            <div class="stack-item"><span class="stack-name"><span class="zh">选型依据</span><span class="en">Why</span></span><span class="stack-spec"><span class="zh">分类准确</span><span class="en">High accuracy</span></span></div>
+          </div>
+        </div>
+        <div class="stack-card">
+          <div class="stack-category"><span class="zh">合规检查</span><span class="en">Compliance Model</span></div>
+          <div class="stack-items">
+            <div class="stack-item"><span class="stack-name">DeepSeek-V3.2</span><span class="stack-spec">Safety</span></div>
+            <div class="stack-item"><span class="stack-name"><span class="zh">选型依据</span><span class="en">Why</span></span><span class="stack-spec"><span class="zh">安全对齐强</span><span class="en">Safety-aligned</span></span></div>
+          </div>
+        </div>
+        <div class="stack-card">
+          <div class="stack-category"><span class="zh">生成模型</span><span class="en">Generation Model</span></div>
+          <div class="stack-items">
+            <div class="stack-item"><span class="stack-name">ERNIE-4.0-Turbo</span><span class="stack-spec">Cost+Prompt</span></div>
+            <div class="stack-item"><span class="stack-name"><span class="zh">选型依据</span><span class="en">Why</span></span><span class="stack-spec"><span class="zh">中文理解强</span><span class="en">Chinese-strong</span></span></div>
+          </div>
+        </div>
+        <div class="stack-card">
+          <div class="stack-category"><span class="zh">回复生成</span><span class="en">Response Model</span></div>
+          <div class="stack-items">
+            <div class="stack-item"><span class="stack-name">ERNIE-Speed</span><span class="stack-spec">UX layer</span></div>
+            <div class="stack-item"><span class="stack-name"><span class="zh">选型依据</span><span class="en">Why</span></span><span class="stack-spec"><span class="zh">速度优先</span><span class="en">Speed priority</span></span></div>
+          </div>
+        </div>
+        <div class="stack-card">
+          <div class="stack-category"><span class="zh">知识库</span><span class="en">Knowledge Base</span></div>
+          <div class="stack-items">
+            <div class="stack-item"><span class="stack-name">RAG · Excel → CSV</span><span class="stack-spec">200+ entries</span></div>
+            <div class="stack-item"><span class="stack-name"><span class="zh">结构</span><span class="en">Schema</span></span><span class="stack-spec">Key/Context/Value/Neg</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+    
+    <div class="divider"></div>
+    
+    <!-- REFLECTION -->
+    <section id="reflection">
+      <div class="section-label"><span class="zh">反思与下一步</span><span class="en">Reflection & Next Steps</span></div>
+      <h2><span class="zh">如果继续迭代，<br/>我会做什么</span><span class="en">If I continued,<br/>here's what's next</span></h2>
+    
+      <div class="next-grid reveal">
+        <div class="next-card">
+          <div class="next-icon">⚙</div>
+          <div class="next-title"><span class="zh">成本模型精准化</span><span class="en">Cost Model Precision</span></div>
+          <div class="next-desc"><span class="zh">接入 Sora、Runway 等真实 AIGC 工具的单价 API，替换当前的估算公式，实现基于真实模型报价的动态计算，并按建议自动计算节省百分比。</span><span class="en">Integrate real pricing APIs from Sora, Runway, and other AIGC tools to replace estimation formulas with dynamic real-world pricing, including auto-calculated savings percentages per recommendation.</span></div>
+        </div>
+        <div class="next-card">
+          <div class="next-icon">🧠</div>
+          <div class="next-title"><span class="zh">跨会话记忆持久化</span><span class="en">Cross-session Memory Persistence</span></div>
+          <div class="next-desc"><span class="zh">基于用户 ID 实现跨会话的历史偏好存储，让 Agent 记住用户的常用分辨率、预算范围、风格偏好，从陌生人变成了解用户的创作助手。</span><span class="en">User ID-based persistent memory to store historical preferences — common resolution, budget ranges, style preferences — evolving from a stranger to a creative assistant that knows the user.</span></div>
+        </div>
+        <div class="next-card">
+          <div class="next-icon">📊</div>
+          <div class="next-title"><span class="zh">可观测性与评估体系</span><span class="en">Observability & Evaluation</span></div>
+          <div class="next-desc"><span class="zh">当前测试是人工逐用例核查。需要建立自动化评估 pipeline：参数提取准确率、成本误差分布、Prompt 专业度打分（可引入 LLM-as-judge 机制）。</span><span class="en">Current testing is manual case-by-case review. Need automated evaluation pipelines: parameter extraction accuracy, cost error distributions, and prompt quality scoring (LLM-as-judge mechanism).</span></div>
+        </div>
+        <div class="next-card">
+          <div class="next-icon">🔗</div>
+          <div class="next-title"><span class="zh">投产执行接口</span><span class="en">Production Execution API</span></div>
+          <div class="next-desc"><span class="zh">"确认投产"后直接调用 AIGC 生成 API，闭合从预审到生成的完整链路，让 Pre-Flight 从前置助手变成端到端的制作平台入口。</span><span class="en">Auto-call AIGC generation APIs upon "confirm production," closing the loop from pre-review to generation — evolving Pre-Flight from a pre-production assistant to an end-to-end production platform entry.</span></div>
+        </div>
+        <div class="next-card">
+          <div class="next-icon">📚</div>
+          <div class="next-title"><span class="zh">知识库扩容</span><span class="en">Knowledge Base Expansion</span></div>
+          <div class="next-desc"><span class="zh">当前仅覆盖仙侠场景（200+ 条）。计划扩展悬疑、都市、古装、科幻等流派，并为每个场景添加推荐台词字段（Script Hook），支持导演模式的金句直取。</span><span class="en">Currently covers only xianxia (200+ entries). Plan to expand to thriller, urban, historical, and sci-fi genres, adding Script Hook fields per scene to enable direct golden-line extraction in Director Mode.</span></div>
+        </div>
+        <div class="next-card">
+          <div class="next-icon">🧪</div>
+          <div class="next-title"><span class="zh">A/B 测试与回归</span><span class="en">A/B Testing & Regression</span></div>
+          <div class="next-desc"><span class="zh">建立回归测试集，每次迭代后自动运行全量用例，对比关键指标变化（成本误差、响应时间、Prompt 质量），防止优化一处、破坏另一处。</span><span class="en">Build a regression test suite that auto-runs all cases after each iteration, comparing key metric changes — preventing optimization in one area from breaking another.</span></div>
+        </div>
+      </div>
+    </section>
+    
+    <div class="divider"></div>
+    
+    <!-- CTA -->
+    <section id="cta" class="section-full">
+      <div class="cta-glow"></div>
+      <div class="cta-inner reveal">
+        <div class="section-label" style="justify-content:center">
+          <span class="zh">联系我</span><span class="en">Get in touch</span>
+        </div>
+        <h2 class="cta-title">
+          <span class="zh">有想法？<br/>聊聊看。</span>
+          <span class="en">Have a project?<br/>Let's talk.</span>
+        </h2>
+        <p class="cta-desc">
+          <span class="zh">如果你在关注 AIGC Agent 系统设计、解决方案架构或产品复盘，欢迎交流。</span>
+          <span class="en">If you're working on AIGC Agent system design, solution architecture, or product retrospectives — let's connect.</span>
+        </p>
+        <div class="cta-links">
+          <a href="mailto:hello@example.com" class="btn-primary">
+            <span class="zh">发邮件给我</span><span class="en">Send an email</span>
+            <span>→</span>
+          </a>
+          <a href="#snapshot" class="btn-outline">
+            <span class="zh">回到项目概览</span><span class="en">Back to snapshot</span>
+          </a>
+        </div>
+      </div>
+    </section>
+    
+    <!-- FOOTER -->
+    <footer>
+      <div class="footer-left">
+        <span class="zh">Pre-Flight Agent · 案例研究 · 2026</span>
+        <span class="en">Pre-Flight Agent · Case Study · 2026</span>
+      </div>
+      <div class="footer-right">
+        <span class="zh">设计与构建：项目核心负责人</span>
+        <span class="en">Designed & Built by the project lead</span>
+      </div>
+    </footer>   
+    <script src="js/workflow.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html>
